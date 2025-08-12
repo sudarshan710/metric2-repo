@@ -1,60 +1,53 @@
+from pathlib import Path
 import os
-os.environ['SPARK_VERSION'] = '3.3'
 
-# from pydeequ.checks import Check, CheckLevel
-# from pydeequ.verification import VerificationSuite
-# from pyspark.sql import SparkSession
+# 1. Set SPARK_VERSION before importing pydeequ
+os.environ["SPARK_VERSION"] = "3.3"
 
-# spark = (
-#     SparkSession.builder
-#     .appName("DataQualityChecks")
-#     .config("spark.jars", "jars/deequ-2.0.3-spark-3.3.jar,jars/scala-library-2.12.15.jar")
-#     .getOrCreate()
-# )
+# 2. Prepare JAR file URIs with pathlib (correct file:/// format)
+deequ_jar_path = Path(r"C:\Users\sudarshan.zunja\Desktop\dE-tr\day22-cs\jars\deequ-2.0.5-spark-3.3.jar")
+scala_jar_path = Path(r"C:\Users\sudarshan.zunja\Desktop\dE-tr\day22-cs\jars\scala-library-2.12.15.jar")
 
-# spark.sparkContext.setLogLevel("WARN")
+deequ_jar_uri = deequ_jar_path.as_uri()
+scala_jar_uri = scala_jar_path.as_uri()
 
-# data = spark.read.csv("customers-100.csv", header=True, inferSchema=True)
-# check = Check(spark, CheckLevel.Error, "Data quality checks").hasSize(lambda x: x >= 100)
+print("Deequ JAR URI:", deequ_jar_uri)
+print("Scala lib JAR URI:", scala_jar_uri)
 
-# result = VerificationSuite(spark).onData(data).addCheck(check).run()
+# 3. Set PYSPARK_SUBMIT_ARGS env var BEFORE importing pyspark or pydeequ
+os.environ["PYSPARK_SUBMIT_ARGS"] = f"--jars {deequ_jar_uri},{scala_jar_uri} pyspark-shell"
 
-# if result.status != "Success":
-#     print("Data quality checks failed. Blocking deployment.")
-
-# if result.status != "Success":
-#     print("Data quality checks failed. Blocking deployment.")
-#     exit(1)
-
+# 4. Now import Spark and pydeequ modules
+from pyspark.sql import SparkSession
 from pydeequ.checks import Check, CheckLevel
 from pydeequ.verification import VerificationSuite
-from pyspark.sql import SparkSession
 
-spark = (
-    SparkSession.builder
-    .appName("DataQualityChecks")
-    .config("spark.jars", "jars/deequ-2.0.5-spark-3.3.jar,jars/scala-library-2.12.15.jar")
-    .getOrCreate()
-)
-
+# 5. Create SparkSession
+spark = SparkSession.builder.appName("DeequTest").getOrCreate()
 spark.sparkContext.setLogLevel("WARN")
 
-data = spark.createDataFrame(
-    [(1, 10), (2, 20), (3, 30)],
-    ["transaction_id", "sales_amount"]
-)
+# 6. Sample data
+data = spark.createDataFrame([
+    (1, 100.0),
+    (2, 200.0),
+    (3, 300.0)
+], ["transaction_id", "sales_amount"])
 
-# check = Check(spark, CheckLevel.Error, "Data quality checks") \
-#     .hasSize(lambda x: x >= 1) \
-#     .isComplete("transaction_id") \
-#     .isNonNegative("sales_amount")
-
+# 7. Define checks
 check = Check(spark, CheckLevel.Error, "Data quality checks") \
-    .hasSize(lambda x: x >= 1)
+    .hasSize(lambda x: x >= 1) \
+    .isComplete("transaction_id") \
+    .isNonNegative("sales_amount")
 
+# 8. Run verification
 result = VerificationSuite(spark).onData(data).addCheck(check).run()
 
+# 9. Interpret results
 if result.status != "Success":
-    print("Data quality checks failed. Blocking deployment.")
+    print("❌ Data quality checks failed. Blocking deployment.")
+    exit(1)
 else:
-    print("Data quality checks passed.")
+    print("✅ Data quality checks passed.")
+
+# 10. Stop SparkSession
+spark.stop()

@@ -1,4 +1,5 @@
 name: python deequ
+
 on:
   push:
     branches: [main]
@@ -21,10 +22,10 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: pip install pyspark==3.3.1 pydeequ
 
-      - name: Download Deequ JAR
+      - name: Download Deequ and Scala jars
         run: |
           mkdir -p jars
           curl -L -o jars/deequ-2.0.5-spark-3.3.jar https://repo1.maven.org/maven2/com/amazon/deequ/deequ/2.0.5-spark-3.3/deequ-2.0.5-spark-3.3.jar
