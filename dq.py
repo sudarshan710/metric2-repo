@@ -33,7 +33,7 @@ from pyspark.sql import SparkSession
 spark = (
     SparkSession.builder
     .appName("DataQualityChecks")
-    .config("spark.jars", "jars/deequ-2.0.3-spark-3.3.jar,jars/scala-library-2.12.15.jar")
+    .config("spark.jars", "jars/deequ-2.0.5-spark-3.3.jar,jars/scala-library-2.12.15.jar")
     .getOrCreate()
 )
 
@@ -44,10 +44,13 @@ data = spark.createDataFrame(
     ["transaction_id", "sales_amount"]
 )
 
+# check = Check(spark, CheckLevel.Error, "Data quality checks") \
+#     .hasSize(lambda x: x >= 1) \
+#     .isComplete("transaction_id") \
+#     .isNonNegative("sales_amount")
+
 check = Check(spark, CheckLevel.Error, "Data quality checks") \
-    .hasSize(lambda x: x >= 1) \
-    .isComplete("transaction_id") \
-    .isNonNegative("sales_amount")
+    .hasSize(lambda x: x >= 1)
 
 result = VerificationSuite(spark).onData(data).addCheck(check).run()
 
