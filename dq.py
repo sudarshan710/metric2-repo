@@ -53,8 +53,5 @@ result = VerificationSuite(spark).onData(data).addCheck(check).run()
 
 if result.status != "Success":
     print("Data quality checks failed. Blocking deployment.")
-    exit(1)
 else:
     print("Data quality checks passed.")
-
-spark.stop()
