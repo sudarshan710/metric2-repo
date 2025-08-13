@@ -1,17 +1,53 @@
+# on:
+#   push:
+#     branches: [main]
+#   pull_request:
+#     branches: [main]
+ 
+# jobs:
+#   databricks-quality-check:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+ 
+#       - name: Trigger Databricks Job
+#         id: run_databricks_job
+#         uses: databricks/run-notebook@v0
+#         with:
+#           databricks-host: ${{ secrets.DATABRICKS_HOST }}
+#           databricks-token: ${{ secrets.DATABRICKS_TOKEN }}
+#           workspace-notebook-path: /Workspace/Users/traininguser7@sudosu.ai/dequ
+#           existing-cluster-id: ${{ secrets.DATABRICKS_CLUSTER_ID }}
+
+#       - name: Get notebook output
+#         run: |
+#           RUN_ID=${{ steps.run_databricks_job.outputs.run-id }}
+#           OUTPUT=$(curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get-output?run_id=$RUN_ID" \
+#             -H "Authorization: Bearer $DATABRICKS_TOKEN")
+#           echo "Notebook Output:"
+#           echo "$OUTPUT"
+ 
+#       - name: Download Deequ Report (if failed)
+#         if: failure()
+#         run: |
+#           # Optionally fetch report from DBFS to attach as artifact using databricks' CLI or REST API
+#           echo "Deequ failed — see DBFS report"
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
- 
+
 jobs:
   databricks-quality-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
- 
-      - name: Trigger Databricks Job
+
+      - name: Trigger Databricks Notebook
         id: run_databricks_job
         uses: databricks/run-notebook@v0
         with:
@@ -19,17 +55,31 @@ jobs:
           databricks-token: ${{ secrets.DATABRICKS_TOKEN }}
           workspace-notebook-path: /Workspace/Users/traininguser7@sudosu.ai/dequ
           existing-cluster-id: ${{ secrets.DATABRICKS_CLUSTER_ID }}
+          workspace-temp-dir: /tmp/databricks-github-actions
+          git-provider: gitHub
 
-      - name: Get notebook output
+      - name: Print success message
+        if: success()
+        run: echo "Deequ checks passed successfully in Databricks notebook."
+
+      - name: Get notebook output (on success)
+        if: success()
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          RUN_ID: ${{ steps.run_databricks_job.outputs.run-id }}
         run: |
-          RUN_ID=${{ steps.run_databricks_job.outputs.run-id }}
-          OUTPUT=$(curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get-output?run_id=$RUN_ID" \
-            -H "Authorization: Bearer $DATABRICKS_TOKEN")
-          echo "Notebook Output:"
-          echo "$OUTPUT"
- 
+          if [ -z "$RUN_ID" ]; then
+            echo "No RUN_ID found from notebook step."
+          else
+            echo "Fetching notebook output for run ID: $RUN_ID"
+            OUTPUT=$(curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get-output?run_id=$RUN_ID" \
+              -H "Authorization: Bearer $DATABRICKS_TOKEN")
+            echo "Notebook Output:"
+            echo "$OUTPUT"
+          fi
+
       - name: Download Deequ Report (if failed)
         if: failure()
         run: |
-          # Optionally fetch report from DBFS to attach as artifact using databricks' CLI or REST API
-          echo "Deequ failed — see DBFS report"
+          echo "Deequ failed — see DBFS report or Databricks job logs for details."
