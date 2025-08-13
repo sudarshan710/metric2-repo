@@ -90,7 +90,7 @@ jobs:
       #       echo "Notebook Output:"
       #       echo "$RESPONSE"
       #     fi
-      - name: Get notebook output for single task in multi-task job
+      - name: Get notebook output result
         if: success()
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
@@ -100,18 +100,25 @@ jobs:
           echo "Fetching task run ID for run: $RUN_ID"
           TASK_RUN_ID=$(curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get?run_id=$RUN_ID" \
             -H "Authorization: Bearer $DATABRICKS_TOKEN" | jq -r ".tasks[0].run_id")
-
+      
           if [ -z "$TASK_RUN_ID" ]; then
             echo "Could not extract task run ID."
             exit 1
           fi
-
+      
           echo "Fetching output for task run ID: $TASK_RUN_ID"
           RESPONSE=$(curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get-output?run_id=$TASK_RUN_ID" \
             -H "Authorization: Bearer $DATABRICKS_TOKEN")
-
-          echo "Notebook Output:"
-          echo "$RESPONSE"
+      
+          echo "Full API Response:"
+          echo "$RESPONSE" | jq .
+      
+          # Extract notebook result
+          OUTPUT=$(echo "$RESPONSE" | jq -r '.notebook_output.result')
+      
+          echo "Notebook Result:"
+          echo "$OUTPUT"
+      
 
       - name: Download Deequ Report (if failed)
         if: failure()
