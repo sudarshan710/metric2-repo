@@ -110,8 +110,8 @@ jobs:
           RESPONSE=$(curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get-output?run_id=$TASK_RUN_ID" \
             -H "Authorization: Bearer $DATABRICKS_TOKEN")
       
-          echo "Full API Response:"
-          echo "$RESPONSE" | jq .
+          # echo "Full API Response:"
+          # echo "$RESPONSE" | jq .
       
           # Extract notebook result
           OUTPUT=$(echo "$RESPONSE" | jq -r '.notebook_output.result')
