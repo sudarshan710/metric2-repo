@@ -68,7 +68,7 @@ jobs:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
           RUN_ID: ${{ steps.run_databricks_job.outputs.run-id }}
-          TASK_KEY: notebook-task
+          TASK_KEY: deq_check
         run: |
           if [ -z "$RUN_ID" ]; then
             echo "No RUN_ID found from notebook step."
@@ -78,7 +78,6 @@ jobs:
             -H "Authorization: Bearer $DATABRICKS_TOKEN")
             echo "Notebook Output:"
             echo "$RESPONSE"
-
 
       - name: Download Deequ Report (if failed)
         if: failure()
