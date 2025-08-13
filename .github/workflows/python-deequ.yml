@@ -19,6 +19,14 @@ jobs:
           databricks-token: ${{ secrets.DATABRICKS_TOKEN }}
           workspace-notebook-path: /Workspace/Users/traininguser7@sudosu.ai/dequ
           existing-cluster-id: ${{ secrets.DATABRICKS_CLUSTER_ID }}
+
+      - name: Get notebook output
+        run: |
+          RUN_ID=${{ steps.run_databricks_job.outputs.run-id }}
+          OUTPUT=$(curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get-output?run_id=$RUN_ID" \
+            -H "Authorization: Bearer $DATABRICKS_TOKEN")
+          echo "Notebook Output:"
+          echo "$OUTPUT"
  
       - name: Download Deequ Report (if failed)
         if: failure()
