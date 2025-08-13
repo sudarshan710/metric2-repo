@@ -13,7 +13,7 @@ jobs:
  
       - name: Trigger Databricks Job
         id: run_databricks_job
-        uses: databricks/run-notebook@v1
+        uses: databricks/run-notebook@v0
         with:
           databricks-host: ${{ secrets.DATABRICKS_HOST }}
           databricks-token: ${{ secrets.DATABRICKS_TOKEN }}
