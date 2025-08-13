@@ -1,37 +1,27 @@
-name: python deequ
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-
+ 
 jobs:
-  quality-check:
+  databricks-quality-check:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
-
-      - uses: actions/setup-java@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+ 
+      - name: Trigger Databricks Job
+        id: run_databricks_job
+        uses: databricks/run-notebook@v1
         with:
-          distribution: 'temurin'
-          java-version: '11'
-
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install Python dependencies
-        run: pip install pyspark==3.3.1 pydeequ
-
-      - name: Download Deequ and Scala jars
+          databricks-host: ${{ secrets.DATABRICKS_HOST }}
+          databricks-token: ${{ secrets.DATABRICKS_TOKEN }}
+          workspace-path: /Workspace/Users/traininguser7@sudosu.ai/Untitled Notebook 2025-08-13 11:21:54
+          cluster-id: ${{ secrets.DATABRICKS_CLUSTER_ID }}
+ 
+      - name: Download Deequ Report (if failed)
+        if: failure()
         run: |
-          mkdir -p jars
-          curl -L -o jars/deequ-2.0.5-spark-3.3.jar https://repo1.maven.org/maven2/com/amazon/deequ/deequ/2.0.5-spark-3.3/deequ-2.0.5-spark-3.3.jar
-          curl -L -o jars/scala-library-2.12.15.jar https://repo1.maven.org/maven2/org/scala-lang/scala-library/2.12.15/scala-library-2.12.15.jar
-
-      - name: Run data quality checks
-        env:
-          SPARK_VERSION: '3.3'
-        run: python dq.py
+          # Optionally fetch report from DBFS to attach as artifact using databricks' CLI or REST API
+          echo "Deequ failed — see DBFS report"
