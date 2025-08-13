@@ -68,8 +68,8 @@ jobs:
           echo "Fetching metadata for run ID: $RUN_ID"
           curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get?run_id=$RUN_ID" \
             -H "Authorization: Bearer $DATABRICKS_TOKEN" | jq '.'
-      
-      
+
+
       - name: Print success message
         if: success()
         run: echo "Deequ checks passed successfully in Databricks notebook."
@@ -90,34 +90,28 @@ jobs:
       #       echo "Notebook Output:"
       #       echo "$RESPONSE"
       #     fi
-
-      - name: Get notebook output for multi-task job
+      - name: Get notebook output for single task in multi-task job
         if: success()
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
           RUN_ID: ${{ steps.run_databricks_job.outputs.run-id }}
-          TASK_KEY: deq_check
         run: |
-          sudo apt-get install jq -y
-      
-          if [ -z "$RUN_ID" ]; then
-            echo "No RUN_ID found from notebook step."
-          else
-            echo "Fetching task run ID for task key: $TASK_KEY"
-            TASK_RUN_ID=$(curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get?run_id=$RUN_ID" \
-              -H "Authorization: Bearer $DATABRICKS_TOKEN" | jq -r ".tasks[] | select(.task_key == \"$TASK_KEY\") | .run_id")
-      
-            if [ -z "$TASK_RUN_ID" ]; then
-              echo "Could not find task run ID for task key $TASK_KEY"
-            else
-              echo "Fetching notebook output for task run ID: $TASK_RUN_ID"
-              RESPONSE=$(curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get-output?run_id=$TASK_RUN_ID" \
-                -H "Authorization: Bearer $DATABRICKS_TOKEN")
-              echo "Notebook Output:"
-              echo "$RESPONSE"
-            fi
+          echo "Fetching task run ID for run: $RUN_ID"
+          TASK_RUN_ID=$(curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get?run_id=$RUN_ID" \
+            -H "Authorization: Bearer $DATABRICKS_TOKEN" | jq -r ".tasks[0].run_id")
+
+          if [ -z "$TASK_RUN_ID" ]; then
+            echo "Could not extract task run ID."
+            exit 1
           fi
+
+          echo "Fetching output for task run ID: $TASK_RUN_ID"
+          RESPONSE=$(curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get-output?run_id=$TASK_RUN_ID" \
+            -H "Authorization: Bearer $DATABRICKS_TOKEN")
+
+          echo "Notebook Output:"
+          echo "$RESPONSE"
 
       - name: Download Deequ Report (if failed)
         if: failure()
