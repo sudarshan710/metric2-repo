@@ -74,11 +74,11 @@ jobs:
             echo "No RUN_ID found from notebook step."
           else
             echo "Fetching notebook output for run ID: $RUN_ID"
-            OUTPUT=$(curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get-output?run_id=$RUN_ID" \
-              -H "Authorization: Bearer $DATABRICKS_TOKEN")
+            RESPONSE=$(curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get-task-output?run_id=$RUN_ID&task_key=$TASK_KEY" \
+            -H "Authorization: Bearer $DATABRICKS_TOKEN")
             echo "Notebook Output:"
-            echo "$OUTPUT"
-          fi
+            echo "$RESPONSE"
+
 
       - name: Download Deequ Report (if failed)
         if: failure()
