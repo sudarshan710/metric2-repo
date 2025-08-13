@@ -62,7 +62,24 @@ jobs:
         if: success()
         run: echo "Deequ checks passed successfully in Databricks notebook."
 
-      - name: Get notebook output (on success)
+      # - name: Get notebook output (on success)
+      #   if: success()
+      #   env:
+      #     DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      #     DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      #     RUN_ID: ${{ steps.run_databricks_job.outputs.run-id }}
+      #     TASK_KEY: deq_check
+      #   run: |
+      #     if [ -z "$RUN_ID" ]; then
+      #       echo "No RUN_ID found from notebook step."
+      #     else
+      #       echo "Fetching notebook output for run ID: $RUN_ID"
+      #       RESPONSE=$(curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get-output?run_id=$RUN_ID" -H "Authorization: Bearer $DATABRICKS_TOKEN")
+      #       echo "Notebook Output:"
+      #       echo "$RESPONSE"
+      #     fi
+
+      - name: Get notebook output for multi-task job
         if: success()
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
@@ -70,14 +87,26 @@ jobs:
           RUN_ID: ${{ steps.run_databricks_job.outputs.run-id }}
           TASK_KEY: deq_check
         run: |
+          sudo apt-get install jq -y
+      
           if [ -z "$RUN_ID" ]; then
             echo "No RUN_ID found from notebook step."
           else
-            echo "Fetching notebook output for run ID: $RUN_ID"
-            RESPONSE=$(curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get-output?run_id=$RUN_ID" -H "Authorization: Bearer $DATABRICKS_TOKEN")
-            echo "Notebook Output:"
-            echo "$RESPONSE"
+            echo "Fetching task run ID for task key: $TASK_KEY"
+            TASK_RUN_ID=$(curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get?run_id=$RUN_ID" \
+              -H "Authorization: Bearer $DATABRICKS_TOKEN" | jq -r ".tasks[] | select(.task_key == \"$TASK_KEY\") | .run_id")
+      
+            if [ -z "$TASK_RUN_ID" ]; then
+              echo "Could not find task run ID for task key $TASK_KEY"
+            else
+              echo "Fetching notebook output for task run ID: $TASK_RUN_ID"
+              RESPONSE=$(curl -s -X GET "$DATABRICKS_HOST/api/2.1/jobs/runs/get-output?run_id=$TASK_RUN_ID" \
+                -H "Authorization: Bearer $DATABRICKS_TOKEN")
+              echo "Notebook Output:"
+              echo "$RESPONSE"
+            fi
           fi
+
       - name: Download Deequ Report (if failed)
         if: failure()
         run: |
