@@ -78,7 +78,7 @@ jobs:
             -H "Authorization: Bearer $DATABRICKS_TOKEN")
             echo "Notebook Output:"
             echo "$RESPONSE"
-
+          fi
       - name: Download Deequ Report (if failed)
         if: failure()
         run: |
